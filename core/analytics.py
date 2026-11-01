@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from core.database import save_session_to_db
 
 class SessionAnalytics:
     def __init__(self):
@@ -40,7 +41,7 @@ class SessionAnalytics:
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(report_data, f, indent=4)
             
-        # Export HTML report with utf-8 encoding to support emojis/special chars
+        # Export HTML report with utf-8 encoding
         html_filename = "session_summary.html"
         html_content = f"""
         <!DOCTYPE html>
@@ -74,4 +75,7 @@ class SessionAnalytics:
         with open(html_filename, "w", encoding="utf-8") as f:
             f.write(html_content)
             
-        print(f"[ANALYTICS] Session report exported successfully to {filename} and {html_filename}!")
+        # Save session data permanently to SQLite database
+        save_session_to_db(report_data)
+        
+        print(f"[ANALYTICS] Session report exported successfully to {filename}, {html_filename}, and SQLite DB!")
