@@ -1,61 +1,74 @@
 import cv2
 import mediapipe as mp
-import numpy as np
-from core.metrics import FatigueMetrics
-from core.posture import PostureAnalyzer
+from core.metrics import calculate_ear
+from core.posture import check_posture
 from core.ai_coach import AICoach
 
 class AuraSyncDetector:
-    def __init__(self):
+    def __init__(self, mode="Active - Deep Work"):
         self.mp_face_mesh = mp.solutions.face_mesh
+        self.face_mesh = self.mp_face_mesh.FaceMesh(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+        
         self.mp_pose = mp.solutions.pose
+        self.pose = self.mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
         
-        self.face_mesh = self.mp_face_mesh.FaceMesh(
-            max_num_faces=1,
-            min_detection_confidence=0.6,
-            min_tracking_confidence=0.6
-        )
-        self.pose = self.mp_pose.Pose(
-            min_detection_confidence=0.6,
-            min_tracking_confidence=0.6
-        )
+        # MediaPipe drawing utilities for facial mesh and skeleton lines
+        self.mp_drawing = mp.solutions.drawing_utils
+        self.mp_drawing_styles = mp.solutions.drawing_styles
         
-        self.fatigue_monitor = FatigueMetrics()
-        self.posture_analyzer = PostureAnalyzer()
-        self.ai_coach = AICoach()
+        self.coach = AICoach(mode=mode)
         
+    def set_detector_mode(self, mode):
+        self.coach.set_mode(mode)
+
     def process_frame(self, frame):
-        h, w, c = frame.shape
-        image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        image_rgb.flags.writeable = False
+        h, w, _ = frame.shape
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
-        face_results = self.face_mesh.process(image_rgb)
-        pose_results = self.pose.process(image_rgb)
+        face_results = self.face_mesh.process(rgb_frame)
+        pose_results = self.pose.process(rgb_frame)
         
-        image_rgb.flags.writeable = True
-        annotated_frame = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
-        
-        avg_ear = 0.0
+        avg_ear = 0.25
         is_drowsy = False
-        posture_status = "UNKNOWN"
+        posture_status = "Good Posture"
         is_bad_posture = False
+        ai_advice = None
         
-        # Evaluate fatigue if face landmarks are detected
+        # Draw Face Mesh & Process Fatigue (EAR)
         if face_results.multi_face_landmarks:
             for face_landmarks in face_results.multi_face_landmarks:
-                avg_ear, is_drowsy = self.fatigue_monitor.evaluate_fatigue(face_landmarks, w, h)
+                # Draw facial mesh tessellation lines on the video frame
+                self.mp_drawing.draw_landmarks(
+                    image=frame,
+                    landmark_list=face_landmarks,
+                    connections=self.mp_face_mesh.FACEMESH_TESSELATION,
+                    landmark_drawing_spec=None,
+                    connection_drawing_spec=self.mp_drawing_styles.get_default_face_mesh_tesselation_style()
+                )
                 
-        # Evaluate posture if pose landmarks are detected
+                avg_ear = calculate_ear(face_landmarks.landmark, w, h)
+                if avg_ear < self.coach.drowsy_threshold:
+                    is_drowsy = True
+                    ai_advice = "High fatigue detected! Take a quick blink break."
+                    self.coach.speak("Attention! High fatigue detected. Please take a deep breath.")
+                    
+        # Draw Pose Skeleton & Process Ergonomic Posture
         if pose_results.pose_landmarks:
-            posture_status, is_bad_posture = self.posture_analyzer.evaluate_posture(pose_results.pose_landmarks, w, h)
-            
-            mp.solutions.drawing_utils.draw_landmarks(
-                annotated_frame, pose_results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS,
-                mp.solutions.drawing_utils.DrawingSpec(color=(0,255,0), thickness=2, circle_radius=2),
-                mp.solutions.drawing_utils.DrawingSpec(color=(0,0,255), thickness=2, circle_radius=2)
+            # Draw body posture skeleton lines on the video frame
+            self.mp_drawing.draw_landmarks(
+                frame,
+                pose_results.pose_landmarks,
+                self.mp_pose.POSE_CONNECTIONS,
+                landmark_drawing_spec=self.mp_drawing_styles.get_default_pose_landmarks_style()
             )
             
-        # Get AI Coach advice if needed
-        ai_advice = self.ai_coach.get_advice(is_drowsy, is_bad_posture)
+            landmarks = pose_results.pose_landmarks.landmark
+            is_bad_posture, posture_status = check_posture(landmarks, w, h)
+            if is_bad_posture:
+                ai_advice = "Slouching detected! Sit up straight."
+                self.coach.speak("Ergonomic warning. Please correct your posture.")
                 
-        return annotated_frame, avg_ear, is_drowsy, posture_status, is_bad_posture, ai_advice
+        if not is_drowsy and not is_bad_posture:
+            ai_advice = "Posture and focus levels are optimal. Keep going!"
+            
+        return frame, avg_ear, is_drowsy, posture_status, is_bad_posture, ai_advice
