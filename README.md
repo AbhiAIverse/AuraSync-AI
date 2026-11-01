@@ -9,43 +9,13 @@
 
 ---
 
-## 🚀 Key Features
+## 🏗️ System Architecture & Workflow
 
-* **Real-Time Fatigue Detection (EAR):** Computes Eye Aspect Ratio using MediaPipe Face Mesh to detect drowsiness and eye strain instantly.
-* **Ergonomic Posture Analysis:** Monitors shoulder and nose alignment to detect slouching or bad posture in real time.
-* **Proactive Voice AI Coach (`pyttsx3`):** Speaks out personalized wellness advice and break reminders using multi-threaded text-to-speech to prevent video lag.
-* **Futuristic Web Dashboard (`Streamlit`):** Visualizes live telemetry data, focus scores, and trends through an interactive web interface.
-* **Automated Session Analytics:** Automatically exports comprehensive JSON logs (`session_report.json`) upon session completion for productivity tracking.
-
----
-
-## 🛠️ Tech Stack
-
-* **Language:** Python 3.10+
-* **Computer Vision & ML:** OpenCV, MediaPipe (Face Mesh & Pose Solutions), NumPy
-* **Voice Synthesis:** `pyttsx3` (Offline Text-to-Speech)
-* **Web Framework:** Streamlit
-* **Architecture:** Modular Python backend (`core/` & `dashboard/`)
-
----
-
-## 📂 Project Architecture
-
-```text
-AuraSync-AI/
-│
-├── core/
-│   ├── __init__.py
-│   ├── metrics.py       # Fatigue & EAR calculation logic
-│   ├── posture.py       # Ergonomic slouching detection
-│   ├── ai_coach.py      # Intelligent voice advice generator
-│   ├── detector.py      # MediaPipe integrated vision pipeline
-│   └── analytics.py     # Session metrics & JSON logger
-│
-├── dashboard/
-│   └── app.py           # Streamlit web telemetry interface
-│
-├── main.py              # Main desktop application runner
-├── requirements.txt     # Project dependencies
-├── session_report.json  # Exported session telemetry logs
-└── README.md            # Project documentation
+```mermaid
+graph TD
+    A[Webcam Feed] --> B[MediaPipe Face Mesh & Pose]
+    B --> C[Core Metrics: EAR & Posture Deviation]
+    C --> D{Multi-Mode Work Profile}
+    D -->|Deep Work / Strict / Casual| E[AI Coach & Speech Alerts pyttsx3]
+    C --> F[Session Analytics JSON / HTML]
+    F --> G[Streamlit Telemetry Dashboard]
