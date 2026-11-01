@@ -7,6 +7,7 @@ import sys
 # Add parent directory to path so we can import core modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from core.database import fetch_all_sessions
+from core.model import predict_burnout_risk
 
 st.set_page_config(page_title="AuraSync AI Telemetry Dashboard", page_icon="✨", layout="wide")
 
@@ -39,6 +40,19 @@ if os.path.exists(report_file):
         st.metric(label="📈 Total Frames Monitored", value=data.get("total_frames_monitored", 0))
 else:
     st.warning("⚠️ No active session report found yet. Run `python main.py` and complete a monitoring session first!")
+
+st.markdown("---")
+
+# --- AI Burnout Prediction Section ---
+st.subheader("🧠 AI Burnout Prediction & Risk Analyzer (Scikit-Learn)")
+risk_message, risk_level = predict_burnout_risk()
+
+if "High" in risk_level:
+    st.error(risk_message)
+elif "Medium" in risk_level:
+    st.warning(risk_message)
+else:
+    st.success(risk_message)
 
 st.markdown("---")
 
