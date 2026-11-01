@@ -1,22 +1,28 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+import json
+import os
 
+# Page Configuration
 st.set_page_config(
-    page_title="AuraSync AI Dashboard",
+    page_title="AuraSync AI - Wellness & Ergonomics Dashboard",
     page_icon="✨",
     layout="wide"
 )
 
+# App Title & Description
 st.title("✨ AuraSync AI - Wellness & Ergonomics Dashboard")
-st.markdown("Real-time telemetry and session analytics for AI-powered remote work and cognitive monitoring.")
+st.markdown("Real-time telemetry, ergonomic monitoring, and session analytics for AI-powered remote work.")
 
-# Sidebar telemetry controls
+# Sidebar Settings
 st.sidebar.header("Session Settings")
 user_name = st.sidebar.text_input("User Name", "Developer")
-mode = st.sidebar.selectbox("Monitoring Mode", ["Active - Deep Work", "Break Mode", "Standby"])
+monitoring_mode = st.sidebar.selectbox("Monitoring Mode", ["Active - Deep Work", "Casual Mode", "Strict Focus"])
 
-# Metrics columns
+st.sidebar.markdown("---")
+st.sidebar.info("AI Coach is active in the background monitoring your posture and fatigue index.")
+
+# Top Metric Cards
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
@@ -30,14 +36,41 @@ with col4:
 
 st.markdown("---")
 
-# Visual analytics section
-st.subheader("📈 Live Telemetry & Trends")
+# Live Telemetry & Trends Section
+st.subheader("📊 Live Telemetry & Trends")
 chart_data = pd.DataFrame(
-    np.random.randn(20, 3),
-    columns=["Focus Level", "Fatigue Index", "Posture Alignment"]
+    {
+        "Fatigue Index": [1.1, -0.8, -1.3, 0.3, -1.4, -0.7, -0.4, -0.7, 1.7, 0.8, -0.4, -0.3, -2.2, 0.9, -0.5, -0.5, 0.6, 0.6, -0.1, -1.7],
+        "Focus Level": [-1.3, 0.3, -0.9, 1.5, -1.2, -0.7, -0.4, -0.1, 1.6, 0.1, 0.6, 0.7, -0.1, 0.6, -0.9, 0.8, -0.8, 0.2, -1.5, 0.2],
+        "Posture Alignment": [-0.6, 0.4, 0.1, 0.6, 0.5, 0.5, -0.5, 2.0, -1.4, -0.3, -1.3, -1.0, -1.0, -1.0, -0.4, -0.4, 1.0, 0.8, 0.2, 0.3]
+    }
 )
 st.line_chart(chart_data)
 
 st.markdown("---")
-st.subheader("💡 Recent AI Coach Recommendations")
-st.info("💡 **AI Coach:** Great posture consistency over the last 30 minutes! Keep hydrated and maintain your ergonomics.")
+
+# Session Analytics JSON Report Section (New Enhancement)
+st.subheader("📁 Latest Session Analytics Report")
+
+report_file = "session_report.json"
+if os.path.exists(report_file):
+    try:
+        with open(report_file, "r") as f:
+            report_data = json.load(f)
+            
+        # Display report in metrics & table format
+        col_a, col_b, col_c = st.columns(3)
+        with col_a:
+            st.metric(label="Session Date", value=report_data.get("session_date", "N/A"))
+        with col_b:
+            st.metric(label="Duration (Seconds)", value=report_data.get("duration_seconds", 0))
+        with col_c:
+            st.metric(label="Total Frames Monitored", value=report_data.get("total_frames_monitored", 0))
+            
+        # Display detailed JSON attributes
+        st.write("**Detailed Event Logs:**")
+        st.json(report_data)
+    except Exception as e:
+        st.warning(f"Could not load session report: {e}")
+else:
+    st.info("No session report found yet. Run `python main.py` and exit to generate session analytics.")
