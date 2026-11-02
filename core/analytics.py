@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime
 from core.database import save_session_to_db
+from core.pdf_report import generate_pdf_report
 
 class SessionAnalytics:
     def __init__(self):
@@ -37,11 +38,11 @@ class SessionAnalytics:
             "overall_focus_score": f"{score}%"
         }
         
-        # Save to JSON with utf-8 encoding
+        # Save to JSON
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(report_data, f, indent=4)
             
-        # Export HTML report with utf-8 encoding
+        # Export HTML report
         html_filename = "session_summary.html"
         html_content = f"""
         <!DOCTYPE html>
@@ -78,4 +79,7 @@ class SessionAnalytics:
         # Save session data permanently to SQLite database
         save_session_to_db(report_data)
         
-        print(f"[ANALYTICS] Session report exported successfully to {filename}, {html_filename}, and SQLite DB!")
+        # Generate Professional PDF Report
+        generate_pdf_report(report_data, "session_report.pdf")
+        
+        print(f"[ANALYTICS] Session report exported successfully to JSON, HTML, PDF, and SQLite DB!")
