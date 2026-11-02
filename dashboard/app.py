@@ -8,6 +8,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from core.database import fetch_all_sessions
 from core.model import predict_burnout_risk
+from core.chatbot import WellnessChatbot
 
 st.set_page_config(page_title="AuraSync AI Telemetry Dashboard", page_icon="✨", layout="wide")
 
@@ -65,3 +66,32 @@ if sessions:
     st.dataframe(df_sessions, use_container_width=True)
 else:
     st.info("No historical sessions recorded in the database yet. Complete a few sessions using `main.py` to see your trends here!")
+
+st.markdown("---")
+
+# --- LangChain Wellness Chatbot Section ---
+st.subheader("💬 Ask AuraSync AI Coach (LangChain Powered)")
+st.markdown("Have questions about ergonomics, posture correction, or fatigue management? Ask your AI wellness assistant below!")
+
+if "chatbot" not in st.session_state:
+    st.session_state.chatbot = WellnessChatbot()
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# Display chat history
+for message in st.session_state.chat_history:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Chat input
+user_input = st.chat_input("Ask for wellness tips (e.g., 'How do I fix my posture?')")
+if user_input:
+    st.session_state.chat_history.append({"role": "user", "content": user_input})
+    with st.chat_message("user"):
+        st.markdown(user_input)
+        
+    ai_response = st.session_state.chatbot.get_response(user_input)
+    st.session_state.chat_history.append({"role": "assistant", "content": ai_response})
+    with st.chat_message("assistant"):
+        st.markdown(ai_response)
